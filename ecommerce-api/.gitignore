@@ -1,0 +1,43 @@
+# Build
+target/
+build/
+out/
+
+# Logs
+*.log
+logs/
+
+# IDE specific
+.idea/
+*.iml
+*.ipr
+*.iws
+.project
+.classpath
+.settings/
+*.nbproject/ # NetBeans
+nbproject/private/
+build-impl.xml
+nbbuild.xml
+dist/
+nbdist/
+nbactions.xml
+nb-configuration.xml
+
+# Maven
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+
+# Gradle
+.gradle/
+gradle-app.setting
+!gradle-wrapper.jar # Mantenha o wrapper do Gradle
+
+# Arquivos de sistema operacional
+.DS_Store
+Thumbs.db
