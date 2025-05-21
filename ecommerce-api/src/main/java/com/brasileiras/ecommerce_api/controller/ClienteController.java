@@ -8,7 +8,6 @@ import com.brasileiras.ecommerce_api.service.ClienteService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
@@ -116,7 +115,7 @@ public class ClienteController {
     }
 
     @PostMapping("/{clienteId}/enderecos")
-    public ResponseEntity<?> adicionarEnderecoAoCliente(@PathVariable Long clienteId, @Valid @RequestBody EnderecoRequestDTO enderecoRequestDTO) throws Exception {
+    public ResponseEntity<?> adicionarEnderecoAoCliente(@PathVariable Long clienteId, @Valid @RequestBody EnderecoRequestDTO enderecoRequestDTO){
        try{
            ClienteResponseDTO clienteAtualizado = clienteService.adicionarEnderecoAoCliente(clienteId, enderecoRequestDTO);
            return ResponseEntity.status(HttpStatus.CREATED).body(clienteAtualizado);
@@ -131,6 +130,29 @@ public class ClienteController {
            return new ResponseEntity<>(errorBody, HttpStatus.CONFLICT);
        }
     }
+
+    //deletar endereco do clinte
+    @DeleteMapping("/{clienteId}/enderecos/{enderecoId}")
+    public ResponseEntity<?> deletarEnderecoDoCliente(@PathVariable Long clienteId, @PathVariable Long enderecoId) {
+        try {
+            boolean enderecoDeletado = clienteService.deletarEnderecoDoCliente(clienteId, enderecoId);
+            if (enderecoDeletado) {
+                return ResponseEntity.ok("Endereço deletado com sucesso.");
+            }
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Endereço não encontrado.");
+
+        } catch (Exception exception) {
+            Map<String, Object> errorBody = new LinkedHashMap<>();
+            errorBody.put("timestamp", LocalDateTime.now().toString());
+            errorBody.put("status", HttpStatus.NOT_FOUND.value());
+            errorBody.put("error", "Not Found");
+            errorBody.put("message", "Endereço não encontrado");
+            errorBody.put("path", "/api/clientes/" + clienteId + "/enderecos/" + enderecoId);
+
+            return new ResponseEntity<>(errorBody, HttpStatus.NOT_FOUND);
+        }
+    }
+
 
     // PUT /api/clientes/atualizar/{id} para ATUALIZAR um cliente existente (dados principais)
      @PutMapping("atualizar/{id}")
@@ -162,12 +184,4 @@ public class ClienteController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Cliente com o ID " + id + " não encontrado.");
         }
      }
-
-     //PUT /api/clientes/{clienteId}/enderecos/{enderecoId} para ATUALIZAR um endereço específico
-     //GET /api/clientes/{clienteId}/enderecos para LISTAR endereços de um cliente
-     //DELETE /api/clientes/{clienteId}/enderecos/{enderecoId} para DELETAR um endereço
-    //POST /api/clientes/{clienteId}/enderecos para ADICIONAR um novo endereço a um cliente
-    //GET /api/clientes/{clienteId}/enderecos/{enderecoId} para BUSCAR um endereço específico de um cliente
-    //GET /api/clientes/{clienteId}/enderecos/{enderecoId}/principal para DEFINIR um endereço como principal
-
 }

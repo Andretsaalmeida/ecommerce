@@ -8,10 +8,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
+
+import static com.brasileiras.ecommerce_api.dto.ClienteResponseDTO.fromEntity;
 
 @Service
 public class ClienteService {
@@ -45,13 +46,13 @@ public class ClienteService {
         Cliente clienteSalvo = clienteRepository.save(cliente);
 
         // Converte a entidade Cliente salva de volta para DTO de resposta
-        return toClienteResponseDTO(clienteSalvo);
+        return fromEntity(clienteSalvo);
     }
 
     @Transactional(readOnly = true)
     public ClienteResponseDTO buscarPorId(Long id) {
         return clienteRepository.findById(id)
-                .map(this::toClienteResponseDTO)// Mapeia Cliente para ClienteResponseDTO
+                .map(ClienteResponseDTO::fromEntity)// Mapeia Cliente para ClienteResponseDTO
                 .orElseThrow(() -> new RuntimeException("Cliente não encontrado com o ID: " + id));
     }
 
@@ -59,7 +60,7 @@ public class ClienteService {
     @Transactional(readOnly = true)
     public List<ClienteResponseDTO> listarTodos() {
         return clienteRepository.findAll().stream()
-                .map(this::toClienteResponseDTO)
+                .map(ClienteResponseDTO::fromEntity)
                 .collect(Collectors.toList());
     }
 
@@ -89,7 +90,7 @@ public class ClienteService {
         cliente.getEnderecos().add(novoEndereco);
         Cliente clienteAtualizado = clienteRepository.save(cliente); // Cascade irá salvar novoEndereco
         // Converte a entidade Cliente atualizada de volta para DTO de resposta
-        return ClienteResponseDTO.toClienteResponseDTO(clienteAtualizado);
+        return fromEntity(clienteAtualizado);
 
     }
 
@@ -128,7 +129,7 @@ public class ClienteService {
         Cliente clienteAtualizado = clienteRepository.save(cliente);
 
         // Converte a entidade atualizada de volta para DTO de resposta
-        return toClienteResponseDTO(clienteAtualizado); // Garanta que este método mapeie os endereços também
+        return fromEntity(clienteAtualizado); // Garanta que este método mapeie os endereços também
     }
 
     @Transactional
@@ -141,29 +142,18 @@ public class ClienteService {
         }
     }
 
-    // Método auxiliar para converter Cliente para ClienteResponseDTO
-    private ClienteResponseDTO toClienteResponseDTO(Cliente cliente) {
-        if (cliente == null) {
-            return null;
-        }
-        List<EnderecoResponseDTO> enderecosResponse;
-        if(cliente.getEnderecos() != null){
-            enderecosResponse = cliente.getEnderecos()
-                    .stream()
-                    .map(EnderecoResponseDTO::fromEntity)
-                    .collect(Collectors.toList());
-        } else {
-            enderecosResponse = Collections.emptyList();
-        }
-
-        return ClienteResponseDTO.builder()
-                .id(cliente.getId())
-                .nome(cliente.getNome())
-                .cpf(cliente.getCpf())
-                .email(cliente.getEmail())
-                .telefone(cliente.getTelefone())
-                .enderecos(enderecosResponse)
-                .build();
+    @Transactional
+    public boolean deletarEnderecoDoCliente(Long clienteId, Long enderecoId) throws Exception {
+        Cliente cliente = clienteRepository.findById(clienteId)
+                .orElseThrow(() -> new Exception("Cliente não encontrado com ID: " + clienteId));
+        Endereco endereco = cliente.getEnderecos()
+                .stream()
+                .filter(e -> e.getId().equals(enderecoId))
+                .findFirst()
+                .orElseThrow(() -> new Exception("Endereço não encontrado com ID: " + enderecoId));
+        cliente.getEnderecos().remove(endereco); // Remove o endereço da lista
+        clienteRepository.save(cliente); // Salva as alterações no cliente
+        return true;
     }
 
     /**

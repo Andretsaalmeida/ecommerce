@@ -11,18 +11,23 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/fornecedores")
 public class FornecedorController {
-    /* @Autowired
-    * private FornecedorService fornecedorService;
-    */
+    /**
+     * Endpoint para gerenciar fornecedores.
+     * - GET /api/fornecedores: Lista todos os fornecedores.
+     * - GET /api/fornecedores/{id}: Busca um fornecedor específico pelo ID.
+     * - POST /api/fornecedores: Cria um novo fornecedor.
+     */
     private final FornecedorService fornecedorService;
 
     public FornecedorController(FornecedorService fornecedorService) {
         this.fornecedorService = fornecedorService;
     }
 
-    @GetMapping
-    public List<Fornecedor> listarFornecedores() {
-        return fornecedorService.listarTodos();
+    @PostMapping
+    public ResponseEntity<Fornecedor> criarFornecedor(@RequestBody Fornecedor fornecedor) {
+        // Usar DTOs e @Valid
+        Fornecedor novoFornecedor = fornecedorService.salvar(fornecedor);
+        return ResponseEntity.status(HttpStatus.CREATED).body(novoFornecedor);
     }
 
     @GetMapping("/{id}")
@@ -32,10 +37,8 @@ public class FornecedorController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    @PostMapping
-    public ResponseEntity<Fornecedor> criarFornecedor(@RequestBody Fornecedor fornecedor) {
-        // Usar DTOs e @Valid
-        Fornecedor novoFornecedor = fornecedorService.salvar(fornecedor);
-        return ResponseEntity.status(HttpStatus.CREATED).body(novoFornecedor);
+    @GetMapping
+    public List<Fornecedor> listarFornecedores() {
+        return fornecedorService.listarTodos();
     }
 }
