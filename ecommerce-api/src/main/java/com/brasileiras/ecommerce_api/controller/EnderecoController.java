@@ -30,7 +30,7 @@ public class EnderecoController {
     }
 
     @Operation(summary = "Busca ou cria um endereço",
-            description = "Verifica se um endereço com os dados fornecidos já existe. Se existir, retorna o endereço existente. Caso contrário, cria um novo endereço e o retorna. Este endpoint é útil para garantir a unicidade dos endereços baseados em seu conteúdo.")
+            description = "Verifica se um endereço com os dados fornecidos já existe. Se existir, retorna o endereço existente. Caso contrário, cria um novo endereço e o retorna. Este endpoint é útil para garantir a unicidade dos endereços.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Endereço encontrado e retornado",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = EnderecoResponseDTO.class))),
