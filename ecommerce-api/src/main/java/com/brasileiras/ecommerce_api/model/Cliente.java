@@ -7,8 +7,8 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "clientes")
@@ -16,6 +16,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@EqualsAndHashCode(exclude = "enderecos") // Evitar recursão no equals/hashCode
 public class Cliente {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -50,11 +51,14 @@ public class Cliente {
     private String senha; // Deveria ser armazenada com hash
 
 
-    @OneToMany(mappedBy = "cliente", cascade = CascadeType.ALL, orphanRemoval = true,
-            fetch = FetchType.EAGER // EAGER para carregar os endereços junto com o cliente, se necessário
+    // Relação Muitos-para-Muitos com Endereco
+    @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE}, fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "cliente_endereco", // Nome da tabela de junção
+            joinColumns = @JoinColumn(name = "cliente_id"), // Coluna que referencia Cliente
+            inverseJoinColumns = @JoinColumn(name = "endereco_id") // Coluna que referencia Endereco
     )
-    @ToString.Exclude // Para evitar recursão no toString se Endereco também tiver referência a Cliente
-    private List<Endereco> enderecos = new ArrayList<>(); // Importante! Inicializa a coleção para evitar NullPointerExceptions.
+    private Set<Endereco> enderecos = new HashSet<>();
 
     /**
      * Define o CPF, removendo caracteres não numéricos antes de atribuir.
@@ -97,11 +101,24 @@ public class Cliente {
     // Métodos para gerenciar a lista de endereços de forma segura (bidirecionalidade)
     public void addEndereco(Endereco endereco) {
         this.enderecos.add(endereco);
-        endereco.setCliente(this); // Mantém a consistência do lado do Endereco
+        if( endereco != null && endereco.getClientes() != null){
+            endereco.getClientes().add(this); // Mantém a consistência do lado do Endereco
+        } else if (endereco != null) {
+            endereco.setClientes(new HashSet<>()); // Inicializa a lista de clientes se for nula
+            endereco.getClientes().add(this); // Mantém a consistência do lado do Endereco
+        }
+        assert endereco != null;
+        endereco.getClientes().add(this); // Mantém a consistência do lado do Endereco
     }
 
     public void removeEndereco(Endereco endereco) {
         this.enderecos.remove(endereco);
-        endereco.setCliente(null); // Mantém a consistência
+        if(endereco != null && endereco.getClientes() != null) {
+            endereco.getClientes().remove(this); // Mantém a consistência do lado do Endereco
+        } else if (endereco != null) {
+            endereco.setClientes(new HashSet<>()); // Inicializa a lista de clientes se for nula
+        }
+        assert endereco != null;
+        endereco.getClientes().remove(this); // Mantém a consistência
     }
 }

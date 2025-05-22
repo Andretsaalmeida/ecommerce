@@ -55,7 +55,7 @@ public class PedidoService {
         if (cliente.getEnderecos() == null || cliente.getEnderecos().isEmpty()) {
             throw new RuntimeException("Cliente não possui endereço cadastrado.");
         }
-        pedido.setEnderecoEntrega(cliente.getEnderecos().getFirst());
+        pedido.setEnderecoEntrega(cliente.getEnderecos().iterator().next());
 
 
         List<ItemPedido> itens = pedidoDTO.getItens().stream().map(itemDto -> {

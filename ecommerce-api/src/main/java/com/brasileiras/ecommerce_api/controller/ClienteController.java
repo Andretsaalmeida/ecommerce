@@ -29,8 +29,8 @@ public class ClienteController {
      * Retorna o ClienteResponseDTO do cliente criado e o status HTTP 201 (Created)
      * com a URI do novo recurso no cabeçalho Location.
      */
-    @PostMapping("/registrar")
-    public ResponseEntity<ClienteResponseDTO> registrarCliente(@Valid @RequestBody ClienteRequestDTO clienteRequestDTO) {
+    @PostMapping("/cadastrar")
+    public ResponseEntity<ClienteResponseDTO> cadastrarCliente(@Valid @RequestBody ClienteRequestDTO clienteRequestDTO) {
         ClienteResponseDTO clienteCriado = clienteService.criarCliente(clienteRequestDTO);
 
         // Cria a URI para o recurso recém-criado
@@ -48,9 +48,9 @@ public class ClienteController {
      * Retorna o ClienteResponseDTO do cliente encontrado ou um erro 404 se não encontrado.
      */
 
-    @GetMapping("/buscar/{id}")
+    @GetMapping("buscar/{id}")
     public ResponseEntity<ClienteResponseDTO> buscarClientePorId(@PathVariable Long id) {
-        ClienteResponseDTO clienteResponseDTO = clienteService.buscarPorId(id);
+        ClienteResponseDTO clienteResponseDTO = clienteService.buscarPorId( id);
         return ResponseEntity.ok(clienteResponseDTO);
     }
 
@@ -75,7 +75,7 @@ public class ClienteController {
 
     @DeleteMapping("/{clienteId}/enderecos/{enderecoId}")
     public ResponseEntity<String> deletarEnderecoDoCliente(@PathVariable Long clienteId, @PathVariable Long enderecoId){
-        clienteService.deletarEnderecoDoCliente(clienteId, enderecoId);
+        clienteService.removerEnderecoDoCliente(clienteId, enderecoId);
         return ResponseEntity.ok("Endereço deletado com sucesso");
     }
 

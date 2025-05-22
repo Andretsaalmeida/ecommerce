@@ -19,6 +19,7 @@ public interface FornecedorRepository extends JpaRepository<Fornecedor, Long> {
      */
     boolean existsByCnpj(String cnpj);
     boolean existsByEmail(String email);
+    boolean existsByEndereco_Id(Long enderecoId);
     /**
      * Exemplo de método de consulta personalizado.
      * O Spring Data JPA irá gerar a implementação automaticamente

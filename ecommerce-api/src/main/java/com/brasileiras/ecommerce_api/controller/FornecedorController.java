@@ -1,44 +1,63 @@
 package com.brasileiras.ecommerce_api.controller;
 
-import com.brasileiras.ecommerce_api.model.Fornecedor;
+import com.brasileiras.ecommerce_api.dto.FornecedorRequestDTO;
+import com.brasileiras.ecommerce_api.dto.FornecedorResponseDTO;
+import com.brasileiras.ecommerce_api.dto.FornecedorUpdateRequestDTO;
 import com.brasileiras.ecommerce_api.service.FornecedorService;
-import org.springframework.http.HttpStatus;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import java.net.URI;
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/fornecedores")
 public class FornecedorController {
-    /**
-     * Endpoint para gerenciar fornecedores.
-     * - GET /api/fornecedores: Lista todos os fornecedores.
-     * - GET /api/fornecedores/{id}: Busca um fornecedor específico pelo ID.
-     * - POST /api/fornecedores: Cria um novo fornecedor.
-     */
-    private final FornecedorService fornecedorService;
+
+    public final FornecedorService fornecedorService;
 
     public FornecedorController(FornecedorService fornecedorService) {
         this.fornecedorService = fornecedorService;
     }
 
-    @PostMapping
-    public ResponseEntity<Fornecedor> criarFornecedor(@RequestBody Fornecedor fornecedor) {
-        // Usar DTOs e @Valid
-        Fornecedor novoFornecedor = fornecedorService.salvar(fornecedor);
-        return ResponseEntity.status(HttpStatus.CREATED).body(novoFornecedor);
+    @PostMapping("/cadastrar")
+    public ResponseEntity<FornecedorResponseDTO> criarFornecedor(@Valid @RequestBody FornecedorRequestDTO requestDTO) {
+        FornecedorResponseDTO fornecedorCriado = fornecedorService.criarFornecedor(requestDTO);
+        URI location = ServletUriComponentsBuilder
+                .fromCurrentRequest()
+                .path("/{id}")
+                .buildAndExpand(fornecedorCriado.id())
+                .toUri();
+        return ResponseEntity.created(location).body(fornecedorCriado);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Fornecedor> buscarFornecedorPorId(@PathVariable Long id) {
-        return fornecedorService.buscarPorId(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<FornecedorResponseDTO> buscarFornecedorPorId(@PathVariable Long id) {
+        FornecedorResponseDTO fornecedor = fornecedorService.buscarFornecedorPorId(id);
+        return ResponseEntity.ok(fornecedor);
     }
 
     @GetMapping
-    public List<Fornecedor> listarFornecedores() {
-        return fornecedorService.listarTodos();
+    public ResponseEntity<List<FornecedorResponseDTO>> listarTodosFornecedores() {
+        List<FornecedorResponseDTO> fornecedores = fornecedorService.listarTodosFornecedores();
+        if (fornecedores.isEmpty()) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok(fornecedores);
+    }
+
+    @PutMapping("atualizar/{id}")
+    public ResponseEntity<FornecedorResponseDTO> atualizarFornecedor(@PathVariable Long id, @Valid @RequestBody FornecedorUpdateRequestDTO requestDTO) {
+        FornecedorResponseDTO fornecedorAtualizado = fornecedorService.atualizarFornecedor(id, requestDTO);
+        return ResponseEntity.ok(fornecedorAtualizado);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<String> deletarFornecedor(@PathVariable Long id) {
+        fornecedorService.deletarFornecedor(id);
+        String mensagemSucesso = "Fornecedor com ID " + id + " deletado com sucesso.";
+        return ResponseEntity.ok(mensagemSucesso);
     }
 }

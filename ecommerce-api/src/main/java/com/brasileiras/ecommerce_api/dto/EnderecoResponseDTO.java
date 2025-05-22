@@ -29,7 +29,7 @@ public record EnderecoResponseDTO(
                 .bairro(endereco.getBairro())
                 .cidade(endereco.getCidade())
                 .estado(endereco.getEstado())
-                .cep(endereco.getCep())
+                .cep(endereco.getCepFormatado())
                 .build();
     }
 }

@@ -44,8 +44,8 @@ public class Fornecedor {
     // CascadeType.ALL: Operações no Fornecedor (persistir, remover, etc.) são cascateadas para o Endereco.
     // orphanRemoval = true: Se o Endereco for desassociado do Fornecedor (ex: fornecedor.setEndereco(null)),
     // ele será removido do banco. Útil se o endereço só existe no contexto do fornecedor.
-    @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @JoinColumn(name = "endereco_id", referencedColumnName = "id") // Chave estrangeira na tabela 'fornecedores'
+    @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = false)
+    @JoinColumn(name = "endereco_id", referencedColumnName = "id", unique = true) // Chave estrangeira na tabela 'fornecedores'
     @NotNull(message = "Endereço do fornecedor não pode ser nulo") // Um fornecedor SEMPRE tem endereço
     private Endereco endereco;
 

@@ -20,9 +20,10 @@ public class EnderecoRequestDTO {
     private Long id;
 
     @NotBlank(message = "Logradouro é obrigatório")
-    @Size(max = 255)
+    @Size(max = 255, message = "Logradouro deve ter no máximo 255 caracteres")
     private String logradouro;
 
+    @NotBlank(message = "Número é obrigatório")
     @Size(max = 20)
     private String numero;
 
@@ -30,11 +31,11 @@ public class EnderecoRequestDTO {
     private String complemento;
 
     @NotBlank(message = "Bairro é obrigatório")
-    @Size(max = 100)
+    @Size(max = 50, message = "Bairro deve ter no máximo 50 caracteres")
     private String bairro;
 
     @NotBlank(message = "Cidade é obrigatória")
-    @Size(max = 100)
+    @Size(max = 50, message = "Cidade deve ter no máximo 50 caracteres")
     private String cidade;
 
     @NotNull(message = "Estado é obrigatório")

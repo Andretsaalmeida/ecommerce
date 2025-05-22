@@ -11,8 +11,9 @@ import lombok.NoArgsConstructor;
 import org.hibernate.validator.constraints.br.CPF;
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
-import java.util.stream.Collectors;
+
 
 
 @Data
@@ -61,13 +62,13 @@ public class ClienteRequestDTO {
         if (clienteRequestDTO.getEnderecos() != null && !clienteRequestDTO.getEnderecos().isEmpty()) {
             List<Endereco> enderecosEntidades = clienteRequestDTO.getEnderecos().stream()
                     .map(EnderecoRequestDTO::toEntity)
-                    .collect(Collectors.toList());
+                    .toList();
 
             // Esta é uma forma de fazer a associação se o 'setter' de Cliente.setEnderecos
             // ou o construtor de Cliente (via builder) já tratar a bidirecionalidade.
-            cliente.setEnderecos(enderecosEntidades);
+            cliente.setEnderecos(new HashSet<> (enderecosEntidades));
         } else {
-            cliente.setEnderecos(Collections.emptyList());
+            cliente.setEnderecos(Collections.emptySet());
         }
         return cliente;
     }

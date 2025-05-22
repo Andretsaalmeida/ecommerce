@@ -8,16 +8,31 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.*;
 
+import java.util.HashSet;
+import java.util.Set;
+
 @Entity
-@Table(name = "enderecos") // Boa prática nomear a tabela explicitamente no plural
+@Table(name = "enderecos", uniqueConstraints = {
+        // Exemplo de constraint de unicidade para um endereço
+        @UniqueConstraint(columnNames = {"cep", "logradouro", "numero", "complemento",
+                "bairro", "cidade", "estado"})
+})
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder //útil para criar objetos com muitos campos de forma mais legível.
+@EqualsAndHashCode(exclude = {"id", "clientes", "fornecedores"}) // Evitar recursão no equals/hashCode
+@ToString(exclude = {"clientes", "fornecedores"}) // Adicionado para evitar recursão no toString
 public class Endereco {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @NotBlank(message = "CEP não pode estar em branco")
+    // Armazenar apenas os 8 dígitos e formatar na apresentação.
+    @Pattern(regexp = "\\d{8}", message = "CEP deve conter 8 dígitos numéricos (sem hífen)")
+    @Column(nullable = false, length = 8) // ou length = 9 se armazenar com hífen
+    private String cep;
 
     @NotBlank(message = "Logradouro não pode estar em branco")
     @Size(max = 255, message = "Logradouro deve ter no máximo 255 caracteres")
@@ -25,7 +40,8 @@ public class Endereco {
     private String logradouro;
 
     // Número pode ser "S/N" (sem número) ou conter letras (Lote, Quadra),
-    // então String é apropriado. Pode ser nulo ou ter um tamanho máximo.
+    // então String é apropriado.
+    @NotBlank(message = "Número não pode estar em branco")
     @Size(max = 20, message = "Número deve ter no máximo 20 caracteres")
     @Column(length = 20) // nullable = true por padrão
     private String numero;
@@ -49,19 +65,13 @@ public class Endereco {
     @Column(nullable = false, length = 2) // O nome do enum (a sigla) terá 2 caracteres
     private EstadoBrasileiro estado;
 
-    @NotBlank(message = "CEP não pode estar em branco")
-    // Armazenar apenas os 8 dígitos e formatar na apresentação.
-    @Pattern(regexp = "\\d{8}", message = "CEP deve conter 8 dígitos numéricos (sem hífen)")
-    @Column(nullable = false, length = 8) // ou length = 9 se armazenar com hífen
-    private String cep;
 
     // Relacionamento com Cliente
-    @NotNull(message = "Cliente não pode ser nulo") // Garante que um endereço sempre pertence a um cliente
-    @ManyToOne(fetch = FetchType.LAZY) // LAZY é geralmente melhor para performance
-    // Todo endereço deve estar associado a um cliente / FK
-    @JoinColumn(name = "cliente_id", nullable = false)
-    @ToString.Exclude
-    private Cliente cliente;
+    @ManyToMany(mappedBy = "enderecos", fetch = FetchType.LAZY) // LAZY é geralmente melhor para performance
+    private Set<Cliente> clientes = new HashSet<>();
+
+    @OneToOne(mappedBy = "endereco", fetch = FetchType.LAZY)
+    private Fornecedor fornecedor;
 
     // Método para formatar o CEP com hífen (se necessário)
     public String getCepFormatado() {

@@ -1,5 +1,7 @@
 package com.brasileiras.ecommerce_api.exception;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
@@ -18,6 +20,8 @@ import java.util.stream.Collectors;
 
 @ControllerAdvice
 public class RestExceptionHandler extends ResponseEntityExceptionHandler {
+
+    private static final Logger logger = LoggerFactory.getLogger(RestExceptionHandler.class);
 
     // Handler para ResourceNotFoundException
     @ExceptionHandler(ResourceNotFoundException.class)
