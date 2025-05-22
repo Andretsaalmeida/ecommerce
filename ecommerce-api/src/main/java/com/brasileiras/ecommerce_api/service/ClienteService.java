@@ -1,6 +1,9 @@
 package com.brasileiras.ecommerce_api.service;
 
 import com.brasileiras.ecommerce_api.dto.*;
+import com.brasileiras.ecommerce_api.exception.BusinessRuleException;
+import com.brasileiras.ecommerce_api.exception.DataConflictException;
+import com.brasileiras.ecommerce_api.exception.ResourceNotFoundException;
 import com.brasileiras.ecommerce_api.model.Cliente;
 import com.brasileiras.ecommerce_api.model.Endereco;
 import com.brasileiras.ecommerce_api.repository.ClienteRepository;
@@ -24,12 +27,12 @@ public class ClienteService {
     }
 
     @Transactional
-    public ClienteResponseDTO criarCliente(ClienteRequestDTO clienteRequestDTO) throws Exception {
+    public ClienteResponseDTO criarCliente(ClienteRequestDTO clienteRequestDTO) {
         if (clienteRepository.existsByCpf(clienteRequestDTO.getCpf())) {
-            throw new Exception("CPF já cadastrado.");
+            throw new DataConflictException("CPF já cadastrado.");
         }
         if (clienteRepository.existsByEmail(clienteRequestDTO.getEmail())) {
-            throw new Exception("Email já cadastrado.");
+            throw new DataConflictException("Email já cadastrado.");
         }
 
         // Converte o DTO para a entidade Cliente
@@ -53,7 +56,7 @@ public class ClienteService {
     public ClienteResponseDTO buscarPorId(Long id) {
         return clienteRepository.findById(id)
                 .map(ClienteResponseDTO::fromEntity)// Mapeia Cliente para ClienteResponseDTO
-                .orElseThrow(() -> new RuntimeException("Cliente não encontrado com o ID: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Cliente não encontrado com o ID: " + id));
     }
 
 
@@ -65,20 +68,23 @@ public class ClienteService {
     }
 
     @Transactional
-    public ClienteResponseDTO adicionarEnderecoAoCliente(Long clienteId, EnderecoRequestDTO enderecoRequestDTO) throws Exception {
-        Cliente cliente = clienteRepository.findById(clienteId).orElseThrow(() -> new Exception("Cliente não encontrado com ID: " + clienteId));
+    public ClienteResponseDTO adicionarEnderecoAoCliente(Long clienteId, EnderecoRequestDTO enderecoRequestDTO) {
+        Cliente cliente = clienteRepository.findById(clienteId).orElseThrow(() -> new ResourceNotFoundException("Cliente não encontrado com ID: " + clienteId + "para adicionar endereço."));
         // enderecoDTO.getId() DEVE ser null aqui para adicionar um novo endereço
         if (enderecoRequestDTO.getId() != null) {
-            throw new Exception("Para adicionar um novo endereço, o ID do endereço deve ser nulo.");
+            throw new BusinessRuleException("Para adicionar um novo endereço, o ID do endereço deve ser nulo.");
         }
         // Converte o DTO de endereço para a entidade Endereco
         Endereco novoEndereco = EnderecoRequestDTO.toEntity(enderecoRequestDTO);
 
         // Verifica se o endereço já existe para o cliente
+//        if (cliente.getEnderecos() != null && cliente.getEnderecos().contains(novoEndereco)) {
+//            throw new Exception("Este endereço já está cadastrado para o cliente de ID: " + clienteId);
+//        }
         if (cliente.getEnderecos() != null) {
             for (Endereco enderecoExistente : cliente.getEnderecos()) {
                 if (saoEnderecosIguais(enderecoExistente, novoEndereco)) {
-                    throw new Exception("Este endereço já está cadastrado para o cliente de ID: " + clienteId);
+                    throw new DataConflictException("Este endereço já está cadastrado para o cliente de ID: " + clienteId);
                 }
             }
         } else {
@@ -96,12 +102,15 @@ public class ClienteService {
 
     public ClienteResponseDTO atualizarCliente(Long id, ClienteUpdateRequestDTO clienteUpdateRequestDTO) {
         Cliente cliente = clienteRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Cliente não encontrado com o ID: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Cliente não encontrado com o ID: " + id + " para atualização."));
         // Atualiza os campos primitivos do cliente
         if (clienteUpdateRequestDTO.getNome() != null) { // Permitir atualização parcial
             cliente.setNome(clienteUpdateRequestDTO.getNome());
         }
-        if (clienteUpdateRequestDTO.getEmail() != null) {
+        if (clienteUpdateRequestDTO.getEmail() != null && !clienteUpdateRequestDTO.getEmail().equals(cliente.getEmail())) {
+            if (clienteRepository.existsByEmail(clienteUpdateRequestDTO.getEmail())) {
+                throw new DataConflictException("Email " + clienteUpdateRequestDTO.getEmail() + " já está em uso por outro cliente.");
+            }
             cliente.setEmail(clienteUpdateRequestDTO.getEmail());
         }
         if (clienteUpdateRequestDTO.getTelefone() != null) {
@@ -133,27 +142,45 @@ public class ClienteService {
     }
 
     @Transactional
-    public boolean deletarCliente(Long id) {
-        if(clienteRepository.existsById(id)) {
-            clienteRepository.deleteById(id);
-            return true;
+    public void deletarCliente(Long id) {
+        if(!clienteRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Cliente com o ID: " + id + " não encontrado para deleção.");
         } else {
-            return false;
+            clienteRepository.deleteById(id);
         }
     }
 
     @Transactional
-    public boolean deletarEnderecoDoCliente(Long clienteId, Long enderecoId) throws Exception {
+    public void deletarEnderecoDoCliente(Long clienteId, Long enderecoId) {
         Cliente cliente = clienteRepository.findById(clienteId)
-                .orElseThrow(() -> new Exception("Cliente não encontrado com ID: " + clienteId));
-        Endereco endereco = cliente.getEnderecos()
+                .orElseThrow(() -> new ResourceNotFoundException("Cliente não encontrado com ID: " + clienteId + " para deletar endereço."));
+
+        if (cliente.getEnderecos() == null || cliente.getEnderecos().isEmpty()) {
+            throw new ResourceNotFoundException("Cliente com ID " + clienteId + " não possui endereços.");
+        }
+
+        Endereco enderecoParaDeletar = cliente.getEnderecos()
                 .stream()
-                .filter(e -> e.getId().equals(enderecoId))
+                .filter(e -> e.getId() != null)
                 .findFirst()
-                .orElseThrow(() -> new Exception("Endereço não encontrado com ID: " + enderecoId));
-        cliente.getEnderecos().remove(endereco); // Remove o endereço da lista
-        clienteRepository.save(cliente); // Salva as alterações no cliente
-        return true;
+                .orElseThrow(() -> new ResourceNotFoundException("Endereço com ID " + enderecoId + " não encontrado para o cliente " + clienteId));
+        // Verifica se este é o único endereço do cliente
+        if (cliente.getEnderecos().size() == 1) {
+            throw new DataConflictException("Não é permitido excluir o único endereço do cliente " + clienteId + ". Cadastre outro endereço antes de excluir este.");
+        }
+
+        // Remove o endereço da lista em memória do cliente
+        boolean removido = cliente.getEnderecos().remove(enderecoParaDeletar);
+
+        if (removido) {
+            clienteRepository.save(cliente);
+            String mensagemSucesso = "Endereço com ID " + enderecoId + " removido com sucesso do cliente " + clienteId;
+            System.out.println(mensagemSucesso); // Pode manter para log no servidor
+        } else {
+            // Isso não deveria acontecer se o endereço foi encontrado no stream acima,
+            // mas é uma salvaguarda.
+            throw new BusinessRuleException("Falha ao tentar remover o endereço com ID " + enderecoId + " da lista do cliente " + clienteId + ". Endereço pode não pertencer a este cliente ou já foi removido.");
+        }
     }
 
     /**
