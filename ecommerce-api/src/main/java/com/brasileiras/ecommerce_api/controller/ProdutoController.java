@@ -1,63 +1,91 @@
 package com.brasileiras.ecommerce_api.controller;
 
-import com.brasileiras.ecommerce_api.model.Produto;
+import com.brasileiras.ecommerce_api.dto.ProdutoRequestDTO;
+import com.brasileiras.ecommerce_api.dto.ProdutoResponseDTO;
 import com.brasileiras.ecommerce_api.service.ProdutoService;
-import org.springframework.http.HttpStatus;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.util.UriComponentsBuilder;
 
-import java.util.List;
+import java.net.URI;
 
 @RestController
 @RequestMapping("/api/produtos")
+@Validated // Adiciona a anotação @Validated para validação de parâmetros
 public class ProdutoController {
-    // O controller é responsável por receber as requisições HTTP e delegar para o serviço
+
     private final ProdutoService produtoService;
 
+    @Autowired
     public ProdutoController(ProdutoService produtoService) {
         this.produtoService = produtoService;
     }
 
-    @GetMapping
-    public List<Produto> listarProdutos() {
-        return produtoService.listarTodos();
-    }
-
-    @GetMapping("/{id}")
-    public ResponseEntity<Produto> buscarProdutoPorId(@PathVariable Long id) {
-        return produtoService.buscarPorId(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
-    }
-
     @PostMapping
-    public ResponseEntity<Produto> criarProduto(@RequestBody Produto produto) {
-        // Em um cenário real, usar DTOs e validações (@Valid)
-        Produto novoProduto = produtoService.salvar(produto);
-        return ResponseEntity.status(HttpStatus.CREATED).body(novoProduto);
+    public ResponseEntity<ProdutoResponseDTO> criarProduto(
+            @Valid @RequestBody ProdutoRequestDTO produtoRequestDTO,
+            UriComponentsBuilder uriBuilder) {
+        ProdutoResponseDTO produtoCriado = produtoService.criarProduto(produtoRequestDTO);
+        URI uri = uriBuilder.path("/api/v1/produtos/{id}").buildAndExpand(produtoCriado.id()).toUri();
+        return ResponseEntity.created(uri).body(produtoCriado);
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<Produto> atualizarProduto(@PathVariable Long id, @RequestBody Produto produto) {
-        return produtoService.buscarPorId(id)
-                .map(produtoExistente -> {
-                    produto.setId(id); // Garante que o ID correto seja usado
-                    // Copiar apenas os campos permitidos para atualização
-                    produtoExistente.setDescricao(produto.getDescricao());
-                    produtoExistente.setValorVenda(produto.getValorVenda());
-                    produtoExistente.setEstoque(produto.getEstoque());
-                    // etc.
-                    return ResponseEntity.ok(produtoService.salvar(produtoExistente));
-                })
-                .orElse(ResponseEntity.notFound().build());
+    @GetMapping
+    public ResponseEntity<Page<ProdutoResponseDTO>> listarProdutos(
+            @RequestParam(required = false) String descricao,
+            @RequestParam(required = false) Long fornecedorId,
+            @RequestParam(required = false) Integer estoqueMaximo,
+            @PageableDefault(sort = "descricao") Pageable pageable) {
+        Page<ProdutoResponseDTO> produtos = produtoService.listarProdutosComFiltros(
+                descricao,
+                fornecedorId,
+                estoqueMaximo,
+                pageable
+        );
+        return ResponseEntity.ok(produtos);
+    }
+
+    @GetMapping("buscar/{id}")
+    public ResponseEntity<ProdutoResponseDTO> buscarProdutoPorId(@PathVariable Long id) {
+        ProdutoResponseDTO produto = produtoService.buscarProdutoPorId(id);
+        return ResponseEntity.ok(produto);
+    }
+
+    @PutMapping("atualizar/{id}")
+    public ResponseEntity<ProdutoResponseDTO> atualizarProduto(
+            @PathVariable Long id,
+            @Valid @RequestBody ProdutoRequestDTO produtoRequestDTO) {
+        ProdutoResponseDTO produtoAtualizado = produtoService.atualizarProduto(id, produtoRequestDTO);
+        return ResponseEntity.ok(produtoAtualizado);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deletarProduto(@PathVariable Long id) {
-        if (produtoService.buscarPorId(id).isEmpty()) {
-            return ResponseEntity.notFound().build();
-        }
-        produtoService.deletar(id);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<String> deletarProduto(@PathVariable Long id) {
+        produtoService.deletarProduto(id);
+        String mensagemSucesso = "Produto com ID " + id + " deletado com sucesso.";
+        return ResponseEntity.ok(mensagemSucesso);
+    }
+
+    @PatchMapping("/{id}/estoque/adicionar")
+    public ResponseEntity<ProdutoResponseDTO> adicionarEstoque(
+            @PathVariable Long id,
+            @RequestParam @Min(value = 1, message = "A quantidade deve ser no mínimo 1") int quantidade) {
+        ProdutoResponseDTO produtoAtualizado = produtoService.adicionarEstoqueAoProduto(id, quantidade);
+        return ResponseEntity.ok(produtoAtualizado);
+    }
+
+    @PatchMapping("/{id}/estoque/remover")
+    public ResponseEntity<ProdutoResponseDTO> removerEstoque(
+            @PathVariable Long id,
+            @RequestParam @Min(value = 1, message = "A quantidade deve ser no mínimo 1") int quantidade) {
+        ProdutoResponseDTO produtoAtualizado = produtoService.removerEstoqueDoProduto(id, quantidade);
+        return ResponseEntity.ok(produtoAtualizado);
     }
 }

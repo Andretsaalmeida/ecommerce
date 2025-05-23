@@ -7,10 +7,10 @@ import com.brasileiras.ecommerce_api.model.ItemPedido;
 import com.brasileiras.ecommerce_api.model.Pedido;
 import com.brasileiras.ecommerce_api.model.Produto;
 import com.brasileiras.ecommerce_api.repository.ClienteRepository;
+import com.brasileiras.ecommerce_api.repository.EnderecoRepository;
 import com.brasileiras.ecommerce_api.repository.PedidoRepository;
 import com.brasileiras.ecommerce_api.repository.ProdutoRepository;
 import jakarta.transaction.Transactional;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -22,16 +22,18 @@ import java.util.stream.Collectors;
 
 @Service
 public class PedidoService {
-    @Autowired
-    private PedidoRepository pedidoRepository;
-    @Autowired
-    private ProdutoRepository produtoRepository;
-    @Autowired
-    private ClienteRepository clienteRepository;
-    // @Autowired
-    // private EnderecoRepository enderecoRepository; // Para buscar endereço
-    @Autowired
-    private ProdutoService produtoService; // Para atualizar estoque
+    private final PedidoRepository pedidoRepository;
+    private final ProdutoRepository produtoRepository;
+    private final ClienteRepository clienteRepository;
+    private EnderecoRepository enderecoRepository; // Para buscar endereço
+    private final ProdutoService produtoService; // Para atualizar estoque
+
+    public PedidoService(PedidoRepository pedidoRepository, ProdutoRepository produtoRepository, ClienteRepository clienteRepository, EnderecoRepository enderecoRepository, ProdutoService produtoService) {
+        this.pedidoRepository = pedidoRepository;
+        this.produtoRepository = produtoRepository;
+        this.clienteRepository = clienteRepository;
+        this.produtoService = produtoService;
+    }
 
     @Transactional
     public Pedido criarPedido(PedidoRequestDTO pedidoDTO) {

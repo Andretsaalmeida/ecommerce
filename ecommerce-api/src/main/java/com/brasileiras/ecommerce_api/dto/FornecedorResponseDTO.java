@@ -1,7 +1,9 @@
 package com.brasileiras.ecommerce_api.dto;
 
 import com.brasileiras.ecommerce_api.model.Fornecedor;
+import lombok.Builder;
 
+@Builder
 public record FornecedorResponseDTO(
         Long id,
         String razaoSocial,

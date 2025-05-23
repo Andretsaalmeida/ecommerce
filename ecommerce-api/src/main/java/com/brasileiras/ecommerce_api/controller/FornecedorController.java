@@ -33,7 +33,7 @@ public class FornecedorController {
         return ResponseEntity.created(location).body(fornecedorCriado);
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("buscar/{id}")
     public ResponseEntity<FornecedorResponseDTO> buscarFornecedorPorId(@PathVariable Long id) {
         FornecedorResponseDTO fornecedor = fornecedorService.buscarFornecedorPorId(id);
         return ResponseEntity.ok(fornecedor);

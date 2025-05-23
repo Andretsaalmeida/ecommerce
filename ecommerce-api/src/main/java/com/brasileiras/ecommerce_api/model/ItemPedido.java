@@ -5,6 +5,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 
@@ -25,6 +26,7 @@ import java.math.RoundingMode;
 @Table(name = "item_pedido")
 @Data
 @NoArgsConstructor
+@EqualsAndHashCode(exclude = {"pedido", "produto"}) //boa prática para coleções
 public class ItemPedido {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -73,13 +75,14 @@ public class ItemPedido {
           Garante que, mesmo se o preço do produto mudar no futuro,
           o preço registrado no pedido permanecerá o mesmo da hora da compra.
          */
-        this.precoUnitario = produto.getValorVenda() == null ? null : produto.getValorVenda().setScale(2, RoundingMode.HALF_UP);
-        // Certifica que Produto.getValorVenda() não é nulo
-        if (this.precoUnitario == null) {
-            throw new IllegalStateException("Produto " + produto.getDescricao() + " não possui valor de venda definido.");
+        BigDecimal valorVendaProduto = produto.getValorVenda();
+        if(valorVendaProduto == null) {
+            throw new IllegalStateException("Produto " + produto.getId()
+                    + " (" + produto.getDescricao() + " não possui valor de venda definido.");
         }
-    }
+        this.precoUnitario = valorVendaProduto.setScale(2, RoundingMode.HALF_UP);
 
+    }
 
     // --- Métodos auxiliares ---
 
