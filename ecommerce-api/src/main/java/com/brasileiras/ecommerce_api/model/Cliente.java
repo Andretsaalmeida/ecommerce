@@ -55,8 +55,8 @@ public class Cliente {
     @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE}, fetch = FetchType.LAZY)
     @JoinTable(
             name = "cliente_endereco", // Nome da tabela de junção
-            joinColumns = @JoinColumn(name = "cliente_id"), // Coluna que referencia Cliente
-            inverseJoinColumns = @JoinColumn(name = "endereco_id") // Coluna que referencia Endereco
+            joinColumns = @JoinColumn(name = "cliente_id", referencedColumnName = "id"), // Coluna que referencia Cliente
+            inverseJoinColumns = @JoinColumn(name = "endereco_id", referencedColumnName = "id") // Coluna que referencia Endereco
     )
     private Set<Endereco> enderecos = new HashSet<>();
 

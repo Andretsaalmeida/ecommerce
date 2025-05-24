@@ -21,8 +21,8 @@ import java.util.Set;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder //útil para criar objetos com muitos campos de forma mais legível.
-@EqualsAndHashCode(exclude = {"id", "clientes", "fornecedores"}) // Evitar recursão no equals/hashCode
-@ToString(exclude = {"clientes", "fornecedores"}) // Adicionado para evitar recursão no toString
+@EqualsAndHashCode(exclude = {"id", "clientes", "fornecedor"}) // Evitar recursão no equals/hashCode
+@ToString(exclude = {"clientes", "fornecedor"}) // Adicionado para evitar recursão no toString
 public class Endereco {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -65,10 +65,10 @@ public class Endereco {
     @Column(nullable = false, length = 2) // O nome do enum (a sigla) terá 2 caracteres
     private EstadoBrasileiro estado;
 
-
     // Relacionamento com Cliente
     @ManyToMany(mappedBy = "enderecos", fetch = FetchType.LAZY) // LAZY é geralmente melhor para performance
     private Set<Cliente> clientes = new HashSet<>();
+
 
     @OneToOne(mappedBy = "endereco", fetch = FetchType.LAZY)
     private Fornecedor fornecedor;

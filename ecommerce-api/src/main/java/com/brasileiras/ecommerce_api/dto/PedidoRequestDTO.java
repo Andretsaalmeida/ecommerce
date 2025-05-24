@@ -4,6 +4,7 @@ import com.brasileiras.ecommerce_api.enums.FormaPagamento;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -25,7 +26,8 @@ public class PedidoRequestDTO {
 
     @NotEmpty(message = "Pedido deve ter pelo menos um item")
     @Valid
-    private List<ItemPedidoDTO> itens;
+    @Size(min = 1, message = "O pedido deve conter pelo menos um item.")
+    private List<ItemPedidoRequestDTO> itens;
 
     @NotEmpty(message = "Pedido deve ter pelo menos uma forma de pagamento")
     private Set<FormaPagamento> formasPagamento;
