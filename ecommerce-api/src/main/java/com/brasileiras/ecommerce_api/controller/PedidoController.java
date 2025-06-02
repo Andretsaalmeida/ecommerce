@@ -35,6 +35,7 @@ public class PedidoController {
         return ResponseEntity.created(uri).body(pedidoCriado);
     }
 
+    // não funcionou
     @GetMapping
     public ResponseEntity<Page<PedidoResponseDTO>> listarPedidos(
             @PageableDefault(sort = "dataPedido,desc") Pageable pageable) {
@@ -46,7 +47,7 @@ public class PedidoController {
     @GetMapping("/cliente/{clienteId}")
     public ResponseEntity<Page<PedidoResponseDTO>> listarPedidosPorCliente(
             @PathVariable Long clienteId,
-            @PageableDefault(sort = "dataPedido,desc") Pageable pageable) { // Adicionado Pageable
+            @PageableDefault(sort = "dataPedido") Pageable pageable) { // Adicionado Pageable
         Page<PedidoResponseDTO> pedidosPage = pedidoService.listarPedidosPorCliente(clienteId, pageable);
         return ResponseEntity.ok(pedidosPage);
     }
@@ -71,5 +72,7 @@ public class PedidoController {
         PedidoResponseDTO pedidoAtualizado = pedidoService.atualizarStatusPedido(id, statusUpdateRequestDTO.novoStatus());
         return ResponseEntity.ok(pedidoAtualizado);
     }
+
+
 }
 
