@@ -42,7 +42,7 @@ public class PedidoController {
         return ResponseEntity.ok(pedidos);
     }
 
-    // CORRIGIDO: listarPedidosPorCliente
+
     @GetMapping("/cliente/{clienteId}")
     public ResponseEntity<Page<PedidoResponseDTO>> listarPedidosPorCliente(
             @PathVariable Long clienteId,
@@ -51,7 +51,7 @@ public class PedidoController {
         return ResponseEntity.ok(pedidosPage);
     }
 
-    // CORRIGIDO: buscarPedidoPorId
+
     @GetMapping("/{id}")
     public ResponseEntity<PedidoResponseDTO> buscarPedidoPorId(@PathVariable Long id) {
         PedidoResponseDTO pedido = pedidoService.buscarPedidoPorId(id);
