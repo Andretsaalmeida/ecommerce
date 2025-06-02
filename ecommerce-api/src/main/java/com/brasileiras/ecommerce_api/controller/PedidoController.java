@@ -72,7 +72,5 @@ public class PedidoController {
         PedidoResponseDTO pedidoAtualizado = pedidoService.atualizarStatusPedido(id, statusUpdateRequestDTO.novoStatus());
         return ResponseEntity.ok(pedidoAtualizado);
     }
-
-
 }
 

@@ -37,13 +37,11 @@ public class PedidoService {
     public PedidoService(PedidoRepository pedidoRepository,
                          ClienteRepository clienteRepository,
                          EnderecoRepository enderecoRepository,
-                         ProdutoRepository produtoRepository
-            /*ItemPedidoRepository itemPedidoRepository*/) {
+                         ProdutoRepository produtoRepository) {
         this.pedidoRepository = pedidoRepository;
         this.clienteRepository = clienteRepository;
         this.enderecoRepository = enderecoRepository;
         this.produtoRepository = produtoRepository;
-        // this.itemPedidoRepository = itemPedidoRepository;
     }
 
     @Transactional
@@ -53,7 +51,7 @@ public class PedidoService {
         Cliente cliente = clienteRepository.findById(pedidoRequestDTO.getClienteId())
                 .orElseThrow(() -> new ResourceNotFoundException("Cliente não encontrado com ID: " + pedidoRequestDTO.getClienteId()));
 
-        // Validar se o endereço pertence ao cliente (se necessário, depende da sua regra de negócio)
+        // Valida se o endereço pertence ao cliente
         Endereco enderecoEntrega = enderecoRepository.findByIdAndClienteId(pedidoRequestDTO.getEnderecoEntregaId(), cliente.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Endereço de entrega não encontrado com ID: " + pedidoRequestDTO.getEnderecoEntregaId() + " para o cliente especificado."));
 
@@ -79,7 +77,7 @@ public class PedidoService {
             // O construtor de ItemPedido já "congela" o preço do produto no momento da compra
             ItemPedido itemPedido = new ItemPedido(novoPedido, produto, itemReq.getQuantidade());
             itensDoPedido.add(itemPedido);
-            // Não é necessário salvar itemPedido individualmente aqui se CascadeType.ALL estiver em Pedido.itens
+
         }
 
         novoPedido.setItens(itensDoPedido); // Isso também recalcula o valorTotal
@@ -88,7 +86,7 @@ public class PedidoService {
         Pedido pedidoSalvo = pedidoRepository.save(novoPedido);
         logger.info("Pedido {} criado com sucesso para o cliente {}.", pedidoSalvo.getNumeroPedido(), cliente.getNome());
 
-        // Lógica Pós-Criação (descomente e implemente conforme necessário)
+        // Lógica Pós-Criação
         // processarAtualizacaoEstoque(pedidoSalvo);
         // gerarLancamentosContasAReceber(pedidoSalvo);
         // enviarNotificacaoConfirmacaoPedido(pedidoSalvo);
@@ -131,10 +129,10 @@ public class PedidoService {
         Pedido pedido = pedidoRepository.findById(pedidoId)
                 .orElseThrow(() -> new ResourceNotFoundException("Pedido não encontrado com ID: " + pedidoId));
 
-        // Adicionar validações de transição de status aqui (ex: não pode ir de CANCELADO para ENVIADO)
+        // Adiciona validações de transição de status (ex: não pode ir de CANCELADO para ENVIADO)
         // Exemplo simples:
         if (pedido.getStatus() == StatusPedido.CANCELADO || pedido.getStatus() == StatusPedido.ENTREGUE) {
-            if (novoStatus != pedido.getStatus()) { // Permite "reatualizar" para o mesmo status por idempotência
+            if (novoStatus != pedido.getStatus()) { // Permite "reatualizar" para o mesmo status
                 throw new BusinessRuleException("Não é possível alterar o status de um pedido " + pedido.getStatus().getDescricao());
             }
         }
@@ -145,9 +143,9 @@ public class PedidoService {
 
         // Lógica Pós-Atualização de Status
         if (novoStatus == StatusPedido.PAGAMENTO_APROVADO) {
-            processarAtualizacaoEstoque(pedidoAtualizado); // PDF: "Com a venda finalizada, o sistema deve realizar a atualização de estoque"
-            // Aqui também poderia ser o momento de gerar lançamentos em Contas a Receber
-            gerarLancamentosContasAReceber(pedidoAtualizado); // PDF: "Cada venda deve gerar, pelo menos um lançamento no contas a receber"
+            processarAtualizacaoEstoque(pedidoAtualizado); // Com a venda finalizada, o sistema deve realizar a atualização de estoque
+            // Gerar lançamentos em Contas a Receber
+            gerarLancamentosContasAReceber(pedidoAtualizado); //Cada venda deve gerar, pelo menos um lançamento no contas a receber
         } else if (novoStatus == StatusPedido.ENVIADO) {
             // Iniciar processo de entrega, notificar cliente, etc.
         } else if (novoStatus == StatusPedido.CANCELADO) {
@@ -159,8 +157,7 @@ public class PedidoService {
     }
 
     private String gerarNumeroPedidoUnico() {
-        // Estratégia simples: timestamp + parte de UUID. Pode ser mais robusto.
-        // Considere usar uma sequence do banco de dados ou um serviço de geração de ID.
+        // Estratégia simples: timestamp + parte de UUID
         return "PED-" + System.currentTimeMillis() + "-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
     }
 
@@ -174,11 +171,11 @@ public class PedidoService {
                 logger.info("Estoque do produto ID {} ({}) atualizado. Removido: {}. Novo estoque: {}",
                         produto.getId(), produto.getDescricao(), item.getQuantidade(), produto.getEstoque());
             } catch (IllegalStateException e) {
-                // Lidar com a situação de estoque ficar insuficiente DEPOIS da criação do pedido.
+                // Lida com a situação de estoque ficar insuficiente DEPOIS da criação do pedido.
                 // Isso não deveria acontecer se a verificação na criação do pedido for robusta e transacional.
                 // Pode ser necessário cancelar o item, notificar, ou até mesmo o pedido.
                 logger.error("Erro ao atualizar estoque para produto ID {}: {}", produto.getId(), e.getMessage());
-                // Lançar uma exceção customizada ou tomar outra ação.
+                // Lançar uma exceção customizada
                 throw new BusinessRuleException("Falha crítica ao atualizar estoque para o produto " + produto.getDescricao() +
                         ". Pedido pode precisar de revisão manual. Detalhe: " + e.getMessage());
             }
@@ -197,10 +194,11 @@ public class PedidoService {
     }
 
     private void gerarLancamentosContasAReceber(Pedido pedido) {
-        // PDF: "Caso boleto, pix, cartão de débito o lançamento deve ser único, com data de lançamento do dia da venda e valor total da venda."
-        // PDF: "Caso seja cartão de crédito, crediário etc, o sistema deve considerar a quantidade de vezes que o cliente optou em dividir a compra e fazer os respectivos lançamentos..."
+        // "Caso boleto, pix, cartão de débito o lançamento deve ser único, com data de lançamento do dia da venda e valor total da venda."
+        // "Caso seja cartão de crédito, crediário etc, o sistema deve considerar a quantidade de vezes que o cliente optou em dividir
+        // a compra e fazer os respectivos lançamentos..."
         logger.info("Gerando lançamentos em Contas a Receber para o pedido: {}", pedido.getNumeroPedido());
-        // Aqui viria a lógica para interagir com um possível ContasAReceberService
+        // Lógica para interagir com um possível ContasAReceberService
         // Exemplo muito simplificado:
         // if (pedido.getFormasPagamento().contains(FormaPagamento.BOLETO) || ...) {
         //     // Criar lançamento único
@@ -209,28 +207,4 @@ public class PedidoService {
         // }
         logger.warn("Implementação de gerarLancamentosContasAReceber pendente.");
     }
-
-
-    // --- Lógica de Contas a Pagar (Conforme PDF: lançamento da nota fiscal de compra de produto) ---
-    // Esta lógica está mais relacionada à entrada de produtos no estoque, não diretamente ao pedido de venda do cliente.
-    // Ela seria chamada quando uma NotaFiscal de COMPRA é processada.
-    // Para fins de exemplo, se você tivesse um "NotaFiscalCompraService":
-    /*
-    @Transactional
-    public void processarEntradaNotaFiscal(NotaFiscalCompraRequestDTO nfRequestDTO) {
-        // ... lógica para salvar a nota fiscal, os itens da nota...
-        // ... atualizar estoque dos produtos da nota (adicionarEstoque)...
-
-        // PDF: "Quando uma nota fiscal é lançada, o sistema deve, obrigatoriamente, realizar um lançamento de contas a pagar,
-        // com o valor total da nota e com data de pagamento com 30 dias após a data que a nota fiscal foi dada entrada."
-
-        BigDecimal valorTotalNota = nfRequestDTO.getValorTotal(); // Exemplo
-        LocalDateTime dataEntradaNota = nfRequestDTO.getDataEntrada(); // Exemplo
-        LocalDateTime dataPagamento = dataEntradaNota.plusDays(30);
-
-        // criarLancamentoContasAPagar(nfRequestDTO.getFornecedorCnpj(), valorTotalNota, dataPagamento, "NF " + nfRequestDTO.getNumero());
-        logger.info("Lançamento de Contas a Pagar gerado para NF {} no valor de {}, com vencimento em {}",
-            nfRequestDTO.getNumero(), valorTotalNota, dataPagamento);
-    }
-    */
 }

@@ -55,7 +55,7 @@ public class ItemPedido {
     @Column(nullable = false, precision = 10, scale = 2) // Ex: 12345678.90
     private BigDecimal precoUnitario; // Preço do produto no momento da inclusão no pedido
 
-    // --- Construtores ---
+    // --- Construtor ---
 
     /**
      * Construtor usado para criar um ItemPedido,

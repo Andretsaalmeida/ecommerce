@@ -104,7 +104,7 @@ public class Pedido {
      */
     public void removerItem(ItemPedido item) {
         if (item != null && this.itens.remove(item)) {
-            item.setPedido(null); // Quebra o lado do item (orphanRemoval cuidará da deleção do DB se configurado)
+            item.setPedido(null); // Quebra o lado do item (orphanRemoval cuidará da deleção do DB)
             this.recalcularValorTotal();
         }
     }
@@ -128,27 +128,23 @@ public class Pedido {
                 itensARemover.removeAll(novosItens); // Remove da lista de "a remover" os que permanecem
             }
             for (ItemPedido itemParaRemover : itensARemover) {
-                this.removerItem(itemParaRemover); // Usa o método que já atualiza o lado do item
+                this.removerItem(itemParaRemover);
             }
         } else {
             this.itens = new ArrayList<>();
         }
 
-        // Adicionar novos itens ou atualizar os existentes (se a lógica de "adicionarItem" for idempotente)
+        // Adicionar novos itens ou atualizar os existentes
         if (novosItens != null) {
             for (ItemPedido novoItem : novosItens) {
                 if (!this.itens.contains(novoItem)) { // Evita adicionar duplicatas se já existem na lista
-                    this.adicionarItem(novoItem); // Usa o método que já seta o pedido no item
+                    this.adicionarItem(novoItem);
                 } else {
-                    // Se o item já existe, você pode querer atualizar sua quantidade ou outros atributos
-                    // Isso dependeria da lógica de como 'novosItens' é construído.
-                    // Por simplicidade, aqui apenas garantimos que o 'pedido' está setado.
                     novoItem.setPedido(this);
                 }
             }
         }
-        // A chamada ao this.recalcularValorTotal() já está em adicionarItem/removerItem.
-        // Mas se a lista foi completamente substituída, uma chamada final pode ser segura.
+
         this.recalcularValorTotal();
     }
 
