@@ -8,6 +8,7 @@ import com.brasileiras.ecommerce_api.exception.BusinessRuleException;
 import com.brasileiras.ecommerce_api.exception.ResourceNotFoundException;
 import com.brasileiras.ecommerce_api.model.*;
 import com.brasileiras.ecommerce_api.repository.*;
+import org.hibernate.Hibernate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,7 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID; // Para gerar número de pedido único
+import java.util.UUID;
 
 @Service
 public class PedidoService {
@@ -61,7 +62,7 @@ public class PedidoService {
         novoPedido.setFormasPagamento(pedidoRequestDTO.getFormasPagamento());
         novoPedido.setStatus(StatusPedido.AGUARDANDO_PAGAMENTO); // Status inicial
         novoPedido.setDataPedido(LocalDateTime.now());
-        novoPedido.setNumeroPedido(gerarNumeroPedidoUnico()); // Implementar geração de número único
+        novoPedido.setNumeroPedido(gerarNumeroPedidoUnico());
 
         List<ItemPedido> itensDoPedido = new ArrayList<>();
         for (ItemPedidoRequestDTO itemReq : pedidoRequestDTO.getItens()) {
@@ -96,8 +97,14 @@ public class PedidoService {
 
     @Transactional(readOnly = true)
     public Page<PedidoResponseDTO> listarPedidos(Pageable pageable) {
-        // Adicionar filtros se necessário (ex: por clienteId, status)
-        return pedidoRepository.findAll(pageable).map(PedidoResponseDTO::fromEntity);
+        Page<Pedido> pedidosPage = pedidoRepository.findAll(pageable);
+        // Itera sobre os pedidos para inicializar as coleções ANTES de mapear para DTO
+        // páginas grandes com muitos itens, o que fazer para evitar a LazyInitializationException?
+        pedidosPage.getContent().forEach(pedido -> {
+            Hibernate.initialize(pedido.getFormasPagamento());
+            Hibernate.initialize(pedido.getItens()); // E para os itens também, se forem lazy e usados no DTO
+        });
+        return pedidosPage.map(PedidoResponseDTO::fromEntity);
     }
 
     @Transactional(readOnly = true)
@@ -105,20 +112,41 @@ public class PedidoService {
         if (!clienteRepository.existsById(clienteId)) {
             throw new ResourceNotFoundException("Cliente não encontrado com ID: " + clienteId);
         }
-        return pedidoRepository.findByClienteId(clienteId, pageable).map(PedidoResponseDTO::fromEntity);
+        Page<Pedido> pedidosPage = pedidoRepository.findByClienteId(clienteId, pageable);
+        pedidosPage.getContent().forEach(pedido -> {
+            Hibernate.initialize(pedido.getFormasPagamento());
+            Hibernate.initialize(pedido.getItens());
+        });
+        return pedidosPage.map(PedidoResponseDTO::fromEntity);
     }
 
     @Transactional(readOnly = true)
     public PedidoResponseDTO buscarPedidoPorId(Long id) {
         Pedido pedido = pedidoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Pedido não encontrado com ID: " + id));
+
+        // INICIALIZAÇÃO EXPLÍCITA da coleção LAZY
+        Hibernate.initialize(pedido.getFormasPagamento()); // Para @ElementCollection
+        Hibernate.initialize(pedido.getItens());           // Também para os itens, se forem LAZY e necessários
+
         return PedidoResponseDTO.fromEntity(pedido);
     }
+
+//    @Transactional(readOnly = true)
+//    public PedidoResponseDTO buscarPedidoPorNumero(String numeroPedido) {
+//        Pedido pedido = pedidoRepository.findByNumeroPedido(numeroPedido)
+//                .orElseThrow(() -> new ResourceNotFoundException("Pedido não encontrado com número: " + numeroPedido));
+//        return PedidoResponseDTO.fromEntity(pedido);
+//    }
 
     @Transactional(readOnly = true)
     public PedidoResponseDTO buscarPedidoPorNumero(String numeroPedido) {
         Pedido pedido = pedidoRepository.findByNumeroPedido(numeroPedido)
                 .orElseThrow(() -> new ResourceNotFoundException("Pedido não encontrado com número: " + numeroPedido));
+
+        Hibernate.initialize(pedido.getFormasPagamento());
+        Hibernate.initialize(pedido.getItens());
+
         return PedidoResponseDTO.fromEntity(pedido);
     }
 
@@ -156,8 +184,21 @@ public class PedidoService {
         return PedidoResponseDTO.fromEntity(pedidoAtualizado);
     }
 
+    @Transactional
+    public String deletarPedido(Long id) {
+        if (!pedidoRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Pedido não encontrado com ID: " + id);
+        }
+        pedidoRepository.deleteById(id);
+        String mensagem = "Pedido ID: " + id + " deletado com sucesso.";
+        logger.info(mensagem);
+        return mensagem;
+    }
+
+    // -- Métodos privados auxiliares ---
+
     private String gerarNumeroPedidoUnico() {
-        // Estratégia simples: timestamp + parte de UUID
+        // timestamp + parte de UUID
         return "PED-" + System.currentTimeMillis() + "-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
     }
 
@@ -207,4 +248,5 @@ public class PedidoService {
         // }
         logger.warn("Implementação de gerarLancamentosContasAReceber pendente.");
     }
+
 }

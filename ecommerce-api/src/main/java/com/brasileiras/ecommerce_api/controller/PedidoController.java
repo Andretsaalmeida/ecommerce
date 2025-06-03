@@ -35,10 +35,9 @@ public class PedidoController {
         return ResponseEntity.created(uri).body(pedidoCriado);
     }
 
-    // não funcionou
     @GetMapping
     public ResponseEntity<Page<PedidoResponseDTO>> listarPedidos(
-            @PageableDefault(sort = "dataPedido,desc") Pageable pageable) {
+            @PageableDefault(sort = "dataPedido") Pageable pageable) {
         Page<PedidoResponseDTO> pedidos = pedidoService.listarPedidos(pageable);
         return ResponseEntity.ok(pedidos);
     }
@@ -71,6 +70,11 @@ public class PedidoController {
             @Valid @RequestBody PedidoStatusUpdateRequestDTO statusUpdateRequestDTO) {
         PedidoResponseDTO pedidoAtualizado = pedidoService.atualizarStatusPedido(id, statusUpdateRequestDTO.novoStatus());
         return ResponseEntity.ok(pedidoAtualizado);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<String> deletarPedido(@PathVariable Long id) {
+        return ResponseEntity.ok(pedidoService.deletarPedido(id));
     }
 }
 
